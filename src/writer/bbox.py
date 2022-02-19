@@ -11,3 +11,4 @@ class BoundingBox:
     start_x: float
     end_x: float
     baseline_y: float
+    connect_at_baseline: bool = False

@@ -28,4 +28,4 @@ repos:
         language: system
         types: [python]
         require_serial: true
-        args: ['--rcfile=src/.pylintrc']
+        args: ['--rcfile=src/.pylintrc', '-E']
