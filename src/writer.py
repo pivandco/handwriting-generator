@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-from pathlib import Path
-import random
 import json
-from dataclasses import dataclass
-from argparse import ArgumentParser
+import random
 import sys
+from argparse import ArgumentParser
+from dataclasses import dataclass
+from pathlib import Path
 
 from PIL import Image, ImageDraw
 

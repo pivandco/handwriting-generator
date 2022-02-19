@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from PIL import Image
 import numpy as np
+from PIL import Image
 from tqdm import tqdm
 
 from ._utils import prepare_destination_directory

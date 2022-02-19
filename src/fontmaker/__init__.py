@@ -1,7 +1,6 @@
 from .background_remover import remove_background
-from .series_splitter import split_series
 from .cropper import crop
-
+from .series_splitter import split_series
 
 if __name__ == '__main__':
     print('Making background transparent...')
