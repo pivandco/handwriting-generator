@@ -7,7 +7,7 @@ from argparse import ArgumentParser
 
 from PIL import Image, ImageDraw
 
-from trimmer import trim
+from trimmer import trim_image
 
 DEBUG = False
 
@@ -23,7 +23,7 @@ def main():
     text = args.textfile.read().replace("ё", "е").replace("Ё", "Е")
     font = Font.load(text)
     result = layout(font, text)
-    result = trim(result)
+    result = trim_image(result)
     result.save("out.png")
 
 

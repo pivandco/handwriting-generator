@@ -10,7 +10,7 @@ SOURCE_DIR = "../letters/chopped/"
 DEST_DIR = "../letters/ready/"
 
 
-def trim(img: Image.Image) -> Image.Image:
+def trim_image(img: Image.Image) -> Image.Image:
     content_start_x = 0
     content_end_x = img.width
     content_start_y = 0
@@ -43,7 +43,7 @@ def trim(img: Image.Image) -> Image.Image:
     return img.crop((content_start_x, content_start_y, content_end_x, content_end_y))
 
 
-def main():
+def trim():
     try:
         os.mkdir(DEST_DIR)
     except FileExistsError:
@@ -62,10 +62,10 @@ def main():
         letter_n = 1
         for src in src_dir.glob("*.png"):
             src_img = Image.open(src)
-            letter = trim(src_img)
+            letter = trim_image(src_img)
             letter.save(letter_dest_dir_path / f"{letter_n}.png")
             letter_n += 1
 
 
 if __name__ == "__main__":
-    main()
+    trim()
