@@ -1,26 +1,9 @@
-#!/usr/bin/env python3
-from argparse import ArgumentParser
 from dataclasses import dataclass, field
 
 from PIL import Image, ImageDraw
 
-from fontmaker.cropper import crop_image
-
 from .bbox import BoundingBox
 from .font import Font
-
-
-def main():
-    argp = ArgumentParser()
-    argp.add_argument("textfile", type=open)
-    argp.add_argument("-d", "--debug", action="store_true")
-    args = argp.parse_args()
-
-    text = args.textfile.read().replace("ё", "е").replace("Ё", "Е")
-    font = Font.load(text)
-    result = draw(font, text, args.debug)
-    result = crop_image(result)
-    result.save("out.png")
 
 
 @dataclass
@@ -139,7 +122,3 @@ def _estimate_biggest_canvas_size(font: Font, text: str) -> Coordinates:
     )
     max_canvas_height = font.line_height() * text.count("\n")
     return int(max_canvas_width + 200), int(max_canvas_height * 2 + 200)
-
-
-if __name__ == "__main__":
-    main()
