@@ -4,10 +4,11 @@ import random
 import json
 from dataclasses import dataclass
 from argparse import ArgumentParser
+import sys
 
 from PIL import Image, ImageDraw
 
-from trimmer import trim_image
+from fontmaker.cropper import crop_image
 
 DEBUG = False
 
@@ -22,8 +23,8 @@ def main():
     DEBUG = args.debug
     text = args.textfile.read().replace("ё", "е").replace("Ё", "Е")
     font = Font.load(text)
-    result = layout(font, text)
-    result = trim_image(result)
+    result = draw(font, text)
+    result = crop_image(result)
     result.save("out.png")
 
 
@@ -32,14 +33,24 @@ FontDict = dict[str, list[Image.Image]]
 
 @dataclass
 class BoundingBox:
+    """
+    Letter bounding box which provides information about how a letter should be positioned
+    relatively to sibling letters and the current line.
+    """
     start_x: float
     end_x: float
     baseline_y: float
 
 
 class Font:
+    """Provides access to letter images, their bounding boxes and line heights."""
+
     @staticmethod
     def load(text: str) -> "Font":
+        """
+        Loads the letter images from ``letters/ready``. Only those letters
+        which are required for drawing ``text`` are loaded.
+        """
         letters_images = {}
         letters = set(text.replace(" ", "").replace("\n", ""))
         for letter in letters:
@@ -49,7 +60,7 @@ class Font:
                 letters_images[letter].append(Image.open(img))
             if not letters_images:
                 print(f'Error: no images for letter "{letter}"')
-                exit(1)
+                sys.exit(1)
         return Font(letters_images)
 
     @staticmethod
@@ -71,16 +82,19 @@ class Font:
 
     def __init__(self, font_dict: FontDict):
         self.dict = font_dict
-        with open("bounding-boxes.json") as f:
-            self._bounding_boxes = json.load(f)
+        with open("bounding-boxes.json", encoding='utf8') as bboxes_file:
+            self._bounding_boxes = json.load(bboxes_file)
 
     def letter(self, char: str) -> Image.Image:
+        """Returns a random letter variation for character ``char``."""
         return random.choice(self.dict[char])
 
     def bounding_box(self, char: str) -> BoundingBox:
+        """Returns a :class:`BoundingBox` for character ``char``."""
         return BoundingBox(*self._bounding_boxes[char])
 
     def line_height(self) -> float:
+        """Calculates the line height so that any possible line of text would fit."""
         return max(
             map(
                 lambda variations: max(
@@ -91,7 +105,8 @@ class Font:
         )
 
 
-def layout(font: Font, text: str) -> Image.Image:
+def draw(font: Font, text: str) -> Image.Image:
+    """Draws the ``text`` using the ``font``."""
     canvas = Image.new(
         "RGBA",
         estimate_biggest_canvas_size(font, text),
@@ -146,7 +161,7 @@ def layout(font: Font, text: str) -> Image.Image:
 
 
 def estimate_biggest_canvas_size(font: Font, text: str) -> tuple[int, int]:
-    # breakpoint()
+    """Estimates a canvas size so that it would fit the ``text`` written using the ``font``."""
     max_letter_widths = {
         letter: max(map(lambda variation: variation.width, variations))
         for letter, variations in font.dict.items()

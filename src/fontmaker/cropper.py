@@ -9,7 +9,9 @@ SOURCE_DIR = "../letters/chopped/"
 DEST_DIR = "../letters/ready/"
 
 
-def _crop_letter(img: Image.Image) -> Image.Image:
+def crop_image(img: Image.Image) -> Image.Image:
+    """Crops an image, removing empty transparent regions around it."""
+
     content_start_x = 0
     content_end_x = img.width
     content_start_y = 0
@@ -55,7 +57,7 @@ def crop():
         letter_n = 1
         for src in src_dir.glob("*.png"):
             src_img = Image.open(src)
-            letter = _crop_letter(src_img)
+            letter = crop_image(src_img)
             letter.save(letter_dest_dir_path / f"{letter_n}.png")
             letter_n += 1
 
