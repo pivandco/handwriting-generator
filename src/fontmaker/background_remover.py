@@ -1,26 +1,22 @@
-#!/usr/bin/env python3
-import os
 from pathlib import Path
-import shutil
 
 from PIL import Image
 import numpy as np
 from tqdm import tqdm
 
+from ._utils import prepare_destination_directory
+
 SOURCE_DIR = "../letters/src/"
 DEST_DIR = "../letters/transparent/"
 
 
-def transparentize():
-    try:
-        os.mkdir(DEST_DIR)
-    except FileExistsError:
-        pass
-    for p in Path(DEST_DIR).glob("*"):
-        if p.is_dir():
-            shutil.rmtree(p)
-        else:
-            p.unlink()
+def remove_background():
+    """
+    Makes letter variations series images black & white
+    and makes white background transparent.
+    """
+
+    prepare_destination_directory(DEST_DIR)
 
     sources = list(Path(SOURCE_DIR).glob("*.jpg"))
 

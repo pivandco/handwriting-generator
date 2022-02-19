@@ -1,25 +1,18 @@
-#!/usr/bin/env python3
-import os
 from pathlib import Path
-import shutil
 
 from PIL import Image
 from tqdm import tqdm
+
+from ._utils import prepare_destination_directory
 
 SOURCE_DIR = "../letters/transparent/"
 DEST_DIR = "../letters/chopped/"
 
 
-def chop():
-    try:
-        os.mkdir(DEST_DIR)
-    except FileExistsError:
-        pass
-    for p in Path(DEST_DIR).glob('*'):
-        if p.is_dir():
-            shutil.rmtree(p)
-        else:
-            p.unlink()
+def split_series():
+    """Splits letter variation series images into separate files."""
+
+    prepare_destination_directory(DEST_DIR)
 
     source_files = list(Path(SOURCE_DIR).glob("*.png"))
 
