@@ -1,2 +1,7 @@
 pylint
 isort
+mypy
+black
+pre-commit
+
+types-pillow

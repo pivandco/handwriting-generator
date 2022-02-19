@@ -28,7 +28,7 @@ ignore-paths=
 
 # Files or directories matching the regex patterns are skipped. The regex
 # matches against base names, not paths.
-ignore-patterns=
+ignore-patterns=.*\.pyi
 
 # Python code to execute, usually for sys.path manipulation such as
 # pygtk.require().
@@ -86,7 +86,8 @@ disable=raw-checker-failed,
         useless-suppression,
         deprecated-pragma,
         use-symbolic-message-instead,
-        missing-module-docstring
+        missing-module-docstring,
+        unsupported-binary-operation
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option

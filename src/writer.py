@@ -3,7 +3,7 @@ import json
 import random
 import sys
 from argparse import ArgumentParser
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from PIL import Image, ImageDraw
@@ -24,18 +24,19 @@ def main():
     result.save("out.png")
 
 
-FontDict = dict[str, list[Image.Image]]
-
-
 @dataclass
 class BoundingBox:
     """
     Letter bounding box which provides information about how a letter should be positioned
     relatively to sibling letters and the current line.
     """
+
     start_x: float
     end_x: float
     baseline_y: float
+
+
+FontDict = dict[str, list[Image.Image]]
 
 
 class Font:
@@ -47,7 +48,7 @@ class Font:
         Loads the letter images from ``letters/ready``. Only those letters
         which are required for drawing ``text`` are loaded.
         """
-        letters_images = {}
+        letters_images: FontDict = {}
         letters = set(text.replace(" ", "").replace("\n", ""))
         for letter in letters:
             letters_images[letter] = []
@@ -78,7 +79,7 @@ class Font:
 
     def __init__(self, font_dict: FontDict):
         self.dict = font_dict
-        with open("bounding-boxes.json", encoding='utf8') as bboxes_file:
+        with open("bounding-boxes.json", encoding="utf8") as bboxes_file:
             self._bounding_boxes = json.load(bboxes_file)
 
     def letter(self, char: str) -> Image.Image:
@@ -101,62 +102,97 @@ class Font:
         )
 
 
+@dataclass
+class DrawingContext:
+    """
+    Provides everything required for drawing handwritten text: canvas,
+    cursor and baseline coordinates, a :class:`Font` instance.
+    """
+
+    canvas: Image.Image
+    debug_drawer: ImageDraw.ImageDraw | None
+    cursor_x = 100
+    cursor_y = 100
+    baseline_y: int | None = field(default=None, init=False)
+
+
 def draw(font: Font, text: str, debug=False) -> Image.Image:
     """Draws the ``text`` using the ``font``."""
     canvas = Image.new(
         "RGBA",
-        estimate_biggest_canvas_size(font, text),
-        (255, 255, 255, 255 if debug else 0),
+        _estimate_biggest_canvas_size(font, text),
+        _get_canvas_bg(debug),
     )
     debug_drawer = ImageDraw.Draw(canvas)
-
-    cursor_x = 100
-    cursor_y = 100
-    baseline_y = None
+    context = DrawingContext(canvas, debug_drawer)
 
     for char_n, char in enumerate(text):
-        if char == " ":
-            cursor_x += 60
-            continue
-        if char == "\n":
-            cursor_x = 100
-            cursor_y += font.line_height()
-            baseline_y = None
-            continue
-
-        letter = font.letter(char)
-        bbox = font.bounding_box(char)
-
-        start_x = cursor_x - bbox.start_x * letter.width
-        if baseline_y is None:
-            baseline_y = cursor_y + bbox.baseline_y * letter.height
-        start_y = baseline_y - letter.height * bbox.baseline_y
-        width = letter.width * (bbox.end_x - bbox.start_x)
-
-        canvas.paste(
-            letter,
-            (
-                round(start_x),
-                round(start_y),
-            ),
-            letter.convert("RGBA"),
-        )
-
-        if debug:
-            end_x = start_x + letter.width * bbox.end_x
-            end_y = start_y + letter.height
-            if char_n == 0:
-                debug_drawer.line([0, end_y, canvas.width, end_y], "red")
-            debug_drawer.line([end_x, end_y, end_x, end_y - letter.height], "red")
-            debug_drawer.line([start_x, end_y, start_x, end_y - letter.height], "blue")
-            debug_drawer.line([start_x, end_y, end_x, end_y], "blue")
-
-        cursor_x += width
+        _draw_char(context, char, char_n, font, canvas, debug, debug_drawer)
 
     return canvas
 
 
-def estimate_biggest_canvas_size(font: Font, text: str) -> tuple[int, int]:
+def _draw_char(
+    context,
+    char,
+    char_n,
+    font,
+    canvas,
+    debug,
+    debug_drawer,
+):
+    if char == " ":
+        context.cursor_x += 60
+        return
+    if char == "\n":
+        context.cursor_x = 100
+        context.cursor_y += font.line_height()
+        context.baseline_y = None
+        return
+
+    letter = font.letter(char)
+    bbox = font.bounding_box(char)
+    start_x, start_y = _get_letter_start_coords(context, letter, bbox)
+    width = letter.width * (bbox.end_x - bbox.start_x)
+
+    canvas.paste(
+        letter,
+        (
+            round(start_x),
+            round(start_y),
+        ),
+        letter.convert("RGBA"),
+    )
+
+    if debug:
+        _draw_debug_lines(canvas, debug_drawer, char_n, letter, bbox, start_x, start_y)
+
+    context.cursor_x += width
+
+
+def _get_letter_start_coords(context, letter, bbox):
+    start_x = context.cursor_x - bbox.start_x * letter.width
+    if context.baseline_y is None:
+        context.baseline_y = context.cursor_y + bbox.baseline_y * letter.height
+    start_y = context.baseline_y - letter.height * bbox.baseline_y
+    return start_x, start_y
+
+
+def _draw_debug_lines(canvas, debug_drawer, char_n, letter, bbox, start_x, start_y):
+    end_x = start_x + letter.width * bbox.end_x
+    end_y = start_y + letter.height
+    if char_n == 0:
+        debug_drawer.line([0, end_y, canvas.width, end_y], "red")
+    debug_drawer.line([end_x, end_y, end_x, end_y - letter.height], "red")
+    debug_drawer.line([start_x, end_y, start_x, end_y - letter.height], "blue")
+    debug_drawer.line([start_x, end_y, end_x, end_y], "blue")
+
+
+def _get_canvas_bg(debug):
+    return (255, 255, 255, 255 if debug else 0)
+
+
+def _estimate_biggest_canvas_size(font: Font, text: str) -> tuple[int, int]:
     """Estimates a canvas size so that it would fit the ``text`` written using the ``font``."""
     max_letter_widths = {
         letter: max(map(lambda variation: variation.width, variations))
@@ -167,7 +203,7 @@ def estimate_biggest_canvas_size(font: Font, text: str) -> tuple[int, int]:
         for line in text.split("\n")
     )
     max_canvas_height = font.line_height() * text.count("\n")
-    return max_canvas_width + 200, max_canvas_height * 2 + 200
+    return int(max_canvas_width + 200), int(max_canvas_height * 2 + 200)
 
 
 if __name__ == "__main__":
