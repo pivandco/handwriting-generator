@@ -10,20 +10,16 @@ from PIL import Image, ImageDraw
 
 from fontmaker.cropper import crop_image
 
-DEBUG = False
-
 
 def main():
-    global DEBUG
     argp = ArgumentParser()
     argp.add_argument("textfile", type=open)
     argp.add_argument("-d", "--debug", action="store_true")
     args = argp.parse_args()
 
-    DEBUG = args.debug
     text = args.textfile.read().replace("ё", "е").replace("Ё", "Е")
     font = Font.load(text)
-    result = draw(font, text)
+    result = draw(font, text, args.debug)
     result = crop_image(result)
     result.save("out.png")
 
@@ -105,12 +101,12 @@ class Font:
         )
 
 
-def draw(font: Font, text: str) -> Image.Image:
+def draw(font: Font, text: str, debug=False) -> Image.Image:
     """Draws the ``text`` using the ``font``."""
     canvas = Image.new(
         "RGBA",
         estimate_biggest_canvas_size(font, text),
-        (255, 255, 255, 255 if DEBUG else 0),
+        (255, 255, 255, 255 if debug else 0),
     )
     debug_drawer = ImageDraw.Draw(canvas)
 
@@ -146,7 +142,7 @@ def draw(font: Font, text: str) -> Image.Image:
             letter.convert("RGBA"),
         )
 
-        if DEBUG:
+        if debug:
             end_x = start_x + letter.width * bbox.end_x
             end_y = start_y + letter.height
             if char_n == 0:
