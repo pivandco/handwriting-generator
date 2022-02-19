@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
-import json
-import random
-import sys
 from argparse import ArgumentParser
 from dataclasses import dataclass, field
-from pathlib import Path
 
 from PIL import Image, ImageDraw
 
 from fontmaker.cropper import crop_image
+
+from .bbox import BoundingBox
+from .font import Font
 
 
 def main():
@@ -22,84 +21,6 @@ def main():
     result = draw(font, text, args.debug)
     result = crop_image(result)
     result.save("out.png")
-
-
-@dataclass
-class BoundingBox:
-    """
-    Letter bounding box which provides information about how a letter should be positioned
-    relatively to sibling letters and the current line.
-    """
-
-    start_x: float
-    end_x: float
-    baseline_y: float
-
-
-FontDict = dict[str, list[Image.Image]]
-
-
-class Font:
-    """Provides access to letter images, their bounding boxes and line heights."""
-
-    @staticmethod
-    def load(text: str) -> "Font":
-        """
-        Loads the letter images from ``letters/ready``. Only those letters
-        which are required for drawing ``text`` are loaded.
-        """
-        letters_images: FontDict = {}
-        letters = set(text.replace(" ", "").replace("\n", ""))
-        for letter in letters:
-            letters_images[letter] = []
-            filename = Font._char_to_filename(letter)
-            for img in Path(f"../letters/ready/{filename}").glob("*.png"):
-                letters_images[letter].append(Image.open(img))
-            if not letters_images:
-                print(f'Error: no images for letter "{letter}"')
-                sys.exit(1)
-        return Font(letters_images)
-
-    @staticmethod
-    def _char_to_filename(char: str) -> str:
-        if char.islower() or char.isdigit():
-            return char
-        if char.isupper():
-            return f"_{char.lower()}"
-        return {
-            ".": "dot",
-            ",": "comma",
-            ":": "colon",
-            ";": "semicolon",
-            "-": "dash",
-            '"': "quoteopen",
-            "!": "exclamation",
-            "?": "question",
-        }[char]
-
-    def __init__(self, font_dict: FontDict):
-        self.dict = font_dict
-        with open("bounding-boxes.json", encoding="utf8") as bboxes_file:
-            self._bounding_boxes = json.load(bboxes_file)
-
-    def letter(self, char: str) -> Image.Image:
-        """Returns a random letter variation for character ``char``."""
-        return random.choice(self.dict[char])
-
-    def bounding_box(self, char: str) -> BoundingBox:
-        """Returns a :class:`BoundingBox` for character ``char``."""
-        return BoundingBox(*self._bounding_boxes[char])
-
-    def line_height(self) -> int:
-        """Calculates the line height so that any possible line of text would fit."""
-        return max(
-            map(
-                lambda variations: max(
-                    map(lambda variation: variation.height, variations)
-                ),
-                self.dict.values(),
-            )
-        )
 
 
 @dataclass
