@@ -90,7 +90,7 @@ class Font:
         """Returns a :class:`BoundingBox` for character ``char``."""
         return BoundingBox(*self._bounding_boxes[char])
 
-    def line_height(self) -> float:
+    def line_height(self) -> int:
         """Calculates the line height so that any possible line of text would fit."""
         return max(
             map(
@@ -106,10 +106,11 @@ class Font:
 class DrawingContext:
     """
     Provides everything required for drawing handwritten text: canvas,
-    cursor and baseline coordinates, a :class:`Font` instance.
+    cursor and baseline coordinates, a :class:`Font` instance and a debug drawer.
     """
 
     canvas: Image.Image
+    font: Font
     debug_drawer: ImageDraw.ImageDraw | None
     cursor_x = 100
     cursor_y = 100
@@ -123,39 +124,38 @@ def draw(font: Font, text: str, debug=False) -> Image.Image:
         _estimate_biggest_canvas_size(font, text),
         _get_canvas_bg(debug),
     )
-    debug_drawer = ImageDraw.Draw(canvas)
-    context = DrawingContext(canvas, debug_drawer)
+    debug_drawer = ImageDraw.Draw(canvas) if debug else None
+    context = DrawingContext(canvas, font, debug_drawer)
 
     for char_n, char in enumerate(text):
-        _draw_char(context, char, char_n, font, canvas, debug, debug_drawer)
+        _draw_char(context, char, char_n)
 
     return canvas
 
 
+Coordinates = tuple[int, int]
+
+
 def _draw_char(
-    context,
-    char,
-    char_n,
-    font,
-    canvas,
-    debug,
-    debug_drawer,
+    context: DrawingContext,
+    char: str,
+    char_n: int,
 ):
     if char == " ":
         context.cursor_x += 60
         return
     if char == "\n":
         context.cursor_x = 100
-        context.cursor_y += font.line_height()
+        context.cursor_y += context.font.line_height()
         context.baseline_y = None
         return
 
-    letter = font.letter(char)
-    bbox = font.bounding_box(char)
-    start_x, start_y = _get_letter_start_coords(context, letter, bbox)
-    width = letter.width * (bbox.end_x - bbox.start_x)
+    letter = context.font.letter(char)
+    bbox = context.font.bounding_box(char)
+    start_x, start_y = start_coords = _get_letter_start_coords(context, letter, bbox)
+    width = int(letter.width * (bbox.end_x - bbox.start_x))
 
-    canvas.paste(
+    context.canvas.paste(
         letter,
         (
             round(start_x),
@@ -164,21 +164,35 @@ def _draw_char(
         letter.convert("RGBA"),
     )
 
-    if debug:
-        _draw_debug_lines(canvas, debug_drawer, char_n, letter, bbox, start_x, start_y)
+    if context.debug_drawer:
+        _draw_debug_lines(context, char_n, letter, bbox, start_coords)
 
     context.cursor_x += width
 
 
-def _get_letter_start_coords(context, letter, bbox):
+def _get_letter_start_coords(
+    context: DrawingContext, letter: Image.Image, bbox: BoundingBox
+) -> Coordinates:
     start_x = context.cursor_x - bbox.start_x * letter.width
     if context.baseline_y is None:
-        context.baseline_y = context.cursor_y + bbox.baseline_y * letter.height
+        context.baseline_y = int(context.cursor_y + bbox.baseline_y * letter.height)
     start_y = context.baseline_y - letter.height * bbox.baseline_y
-    return start_x, start_y
+    return int(start_x), int(start_y)
 
 
-def _draw_debug_lines(canvas, debug_drawer, char_n, letter, bbox, start_x, start_y):
+def _draw_debug_lines(
+    context: DrawingContext,
+    char_n: int,
+    letter: Image.Image,
+    bbox: BoundingBox,
+    start_coords: Coordinates,
+):
+    debug_drawer = context.debug_drawer
+    if not debug_drawer:
+        return
+    canvas = context.canvas
+    start_x, start_y = start_coords
+
     end_x = start_x + letter.width * bbox.end_x
     end_y = start_y + letter.height
     if char_n == 0:
@@ -188,11 +202,11 @@ def _draw_debug_lines(canvas, debug_drawer, char_n, letter, bbox, start_x, start
     debug_drawer.line([start_x, end_y, end_x, end_y], "blue")
 
 
-def _get_canvas_bg(debug):
+def _get_canvas_bg(debug: bool):
     return (255, 255, 255, 255 if debug else 0)
 
 
-def _estimate_biggest_canvas_size(font: Font, text: str) -> tuple[int, int]:
+def _estimate_biggest_canvas_size(font: Font, text: str) -> Coordinates:
     """Estimates a canvas size so that it would fit the ``text`` written using the ``font``."""
     max_letter_widths = {
         letter: max(map(lambda variation: variation.width, variations))
