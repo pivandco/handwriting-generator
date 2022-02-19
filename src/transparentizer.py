@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 import os
 from pathlib import Path
-from PIL import Image
 import shutil
+
+from PIL import Image
 import numpy as np
 from tqdm import tqdm
 
-SOURCE_DIR = "../letters/bnw/"
+SOURCE_DIR = "../letters/src/"
 DEST_DIR = "../letters/transparent/"
 
 try:
@@ -21,9 +22,9 @@ for p in Path(DEST_DIR).glob("*"):
 
 sources = list(Path(SOURCE_DIR).glob("*.jpg"))
 
-letter_n = 1
 for src in tqdm(sources):
     src_img = Image.open(src).convert("LA")
-    x = np.asarray(src_img.convert('RGBA')).copy()
-    x[:, :, 3] = (255 * (x[:, :, :3] < 128).any(axis=2)).astype(np.uint8)
-    Image.fromarray(x).save(Path(DEST_DIR) / (src.stem + ".png"))
+    pixels = np.asarray(src_img)
+    pixels[pixels[:, :, 0] > 255 * 0.8] = (255, 0)
+    pixels[pixels[:, :, 0] <= 255 * 0.8] = (0, 255)
+    Image.fromarray(pixels).save(Path(DEST_DIR) / (src.stem + ".png"))
