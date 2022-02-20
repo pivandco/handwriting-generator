@@ -6,7 +6,7 @@ from pathlib import Path
 
 from PIL import Image
 
-from .bbox import BoundingBox
+from .bbox import BoundingBox, BoundingBoxesJSONDecoder, ConnectionStart
 from .config import CONFIG
 
 Coordinates = tuple[int, int]
@@ -58,7 +58,7 @@ class Font:
         with open(
             f"{CONFIG['paths']['font']}/bounding-boxes.json", encoding="utf8"
         ) as bboxes_file:
-            self._bounding_boxes = json.load(bboxes_file)
+            self._bounding_boxes = json.load(bboxes_file, cls=BoundingBoxesJSONDecoder)
 
     def letter_variation(self, char: str) -> "LetterVariation":
         """Returns a :class:`Letter` instance for character ``char``."""
@@ -102,24 +102,76 @@ class LetterVariation:
                 "letter interconnections between non-alphabetic characters does not make sense"
             )
 
-        # TODO: start at baseline
-        far_right_vertical_slice = (
-            self.image.crop(
-                (self.image.width - 1, 0, self.image.width, self.image.height)
+        if self.bbox.connection_start == ConnectionStart.FAR_RIGHT:
+            connection_x = self.image.width
+            far_right_vertical_slice = (
+                self.image.crop(
+                    (self.image.width - 1, 0, self.image.width, self.image.height)
+                )
+                .getchannel("L")
+                .getdata()
             )
-            .getchannel("L")
-            .getdata()
-        )
-        try:
-            connection_y = list(far_right_vertical_slice).index(0)
-        except ValueError:
-            self._logger.warning(
-                "Failed to find the Y starting connection coordinate for %s: "
-                "far right slice does not have black pixels",
-                repr(self),
+            try:
+                connection_y = list(far_right_vertical_slice).index(0)
+            except ValueError:
+                self._logger.warning(
+                    "Failed to find the Y starting connection coordinate for %s: "
+                    "far right slice does not have black pixels",
+                    repr(self),
+                )
+                connection_y = int(self.image.height / 2)
+
+        elif self.bbox.connection_start == ConnectionStart.BOTTOM:
+            connection_y = self.image.height
+            bottom_slice = (
+                self.image.crop(
+                    (0, self.image.height - 1, self.image.width, self.image.height)
+                )
+                .getchannel("L")
+                .getdata()
             )
-            connection_y = int(self.image.height / 2)
-        return self.image.width, connection_y
+            try:
+                connection_x = list(bottom_slice).index(0)
+            except ValueError:
+                self._logger.warning(
+                    "Failed to find the X starting connection coordinate for %s: "
+                    "bottom slice does not have black pixels",
+                    repr(self),
+                )
+                connection_x = int(self.image.width / 2)
+
+        elif self.bbox.connection_start == ConnectionStart.FAR_RIGHT_OF_BOTTOM_HALF:
+            bottom_half = self.image.crop(
+                (0, int(self.image.height / 2), self.image.width, self.image.height)
+            )
+            bottom_half_bbox = bottom_half.getbbox()
+            assert bottom_half_bbox is not None
+            connection_x = rightmost_nonempty_x = bottom_half_bbox[3]
+            far_right_vertical_slice = (
+                bottom_half.crop(
+                    (
+                        rightmost_nonempty_x - 1,
+                        0,
+                        rightmost_nonempty_x,
+                        bottom_half.height,
+                    )
+                )
+                .getchannel("L")
+                .getdata()
+            )
+            try:
+                connection_y = int(
+                    self.image.height / 2 + list(far_right_vertical_slice).index(0)
+                )
+            except ValueError:
+                self._logger.warning(
+                    "Failed to find the Y starting connection coordinate for %s: "
+                    "far right slice does not have black pixels",
+                    repr(self),
+                )
+                connection_y = int(self.image.height / 2)
+
+        return connection_x, connection_y
 
     def find_connection_end_coords(self) -> Coordinates:
         """
@@ -134,9 +186,18 @@ class LetterVariation:
         part_above_baseline = self.image.crop(
             (0, 0, self.image.width, int(self.bbox.baseline_y * self.image.height))
         )
-        part_above_baseline = part_above_baseline.crop(part_above_baseline.getbbox())
+        part_above_baseline_bbox = part_above_baseline.getbbox()
+        assert part_above_baseline_bbox is not None
+        leftmost_nonempty_x = part_above_baseline_bbox[0]
         far_left_vertical_slice = (
-            part_above_baseline.crop((0, 0, 1, part_above_baseline.height))
+            part_above_baseline.crop(
+                (
+                    leftmost_nonempty_x,
+                    0,
+                    leftmost_nonempty_x + 1,
+                    part_above_baseline.height,
+                )
+            )
             .getchannel("L")
             .getdata()
         )
@@ -149,7 +210,7 @@ class LetterVariation:
                 repr(self),
             )
             connection_y = int(self.image.height / 2)
-        return 0, connection_y
+        return leftmost_nonempty_x, connection_y
 
     def __repr__(self) -> str:
         return f"<LetterVariation src={self.image.filename!r}>"  # type: ignore

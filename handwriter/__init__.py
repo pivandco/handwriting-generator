@@ -93,7 +93,7 @@ def _draw_char(
                     (start_x, start_y),
                 ),
                 "red",
-                2,
+                3,
             )
         context.connection_start = _add_coords(
             variation.find_connection_start_coords(),
