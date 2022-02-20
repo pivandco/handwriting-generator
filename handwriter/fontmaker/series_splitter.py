@@ -5,8 +5,8 @@ from tqdm import tqdm
 
 from ._utils import prepare_destination_directory
 
-SOURCE_DIR = "../letters/transparent/"
-DEST_DIR = "../letters/chopped/"
+SOURCE_DIR = "font/transparent/"
+DEST_DIR = "font/chopped/"
 
 
 def split_series():
@@ -18,7 +18,7 @@ def split_series():
 
     for src in tqdm(source_files):
         letter_dest_dir_path = Path(DEST_DIR) / src.stem
-        max_width = 200 if src.stem.startswith('_') else 120
+        max_width = 200 if src.stem.startswith("_") else 120
         letter_dest_dir_path.mkdir(exist_ok=True)
         src_img = Image.open(src)
         letter_ongoing = False

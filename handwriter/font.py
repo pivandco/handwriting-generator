@@ -6,9 +6,8 @@ from pathlib import Path
 
 from PIL import Image
 
-from fontmaker.cropper import crop_image
-
 from .bbox import BoundingBox
+from .fontmaker.cropper import crop_image
 
 Coordinates = tuple[int, int]
 FontDict = dict[str, list[Image.Image]]
@@ -28,7 +27,7 @@ class Font:
         for letter in letters:
             letters_images[letter] = []
             filename = Font._char_to_filename(letter)
-            for img in Path(f"../letters/ready/{filename}").glob("*.png"):
+            for img in Path(f"font/ready/{filename}").glob("*.png"):
                 letters_images[letter].append(Image.open(img))
             if not letters_images:
                 print(f'Error: no images for letter "{letter}"')
@@ -54,7 +53,7 @@ class Font:
 
     def __init__(self, font_dict: FontDict):
         self.dict = font_dict
-        with open("bounding-boxes.json", encoding="utf8") as bboxes_file:
+        with open("font/bounding-boxes.json", encoding="utf8") as bboxes_file:
             self._bounding_boxes = json.load(bboxes_file)
 
     def letter_variation(self, char: str) -> "LetterVariation":

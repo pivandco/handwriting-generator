@@ -1,9 +1,8 @@
 from argparse import ArgumentParser
 
-from fontmaker.cropper import crop_image
-
 from . import draw
 from .font import Font
+from .fontmaker.cropper import crop_image
 
 argp = ArgumentParser()
 argp.add_argument("textfile", type=open)

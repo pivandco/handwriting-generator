@@ -5,8 +5,8 @@ from tqdm import tqdm
 
 from ._utils import prepare_destination_directory
 
-SOURCE_DIR = "../letters/chopped/"
-DEST_DIR = "../letters/ready/"
+SOURCE_DIR = "font/chopped/"
+DEST_DIR = "font/ready/"
 
 
 def crop_image(img: Image.Image) -> Image.Image:

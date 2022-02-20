@@ -6,8 +6,8 @@ from tqdm import tqdm
 
 from ._utils import prepare_destination_directory
 
-SOURCE_DIR = "../letters/src/"
-DEST_DIR = "../letters/transparent/"
+SOURCE_DIR = "font/src/"
+DEST_DIR = "font/transparent/"
 
 
 def remove_background():
