@@ -6,7 +6,7 @@ from tqdm import tqdm
 from ._utils import prepare_destination_directory
 
 SOURCE_DIR = "font/transparent/"
-DEST_DIR = "font/chopped/"
+DEST_DIR = "font/ready/"
 
 
 def split_series():
@@ -34,8 +34,10 @@ def split_series():
                 letter_ongoing = False
                 if 20 < x - letter_start_x < max_width:
                     letter = src_img.crop((letter_start_x, 0, x, src_img.height))
+                    letter = letter.crop(letter.getbbox())
                     letter.save(letter_dest_dir_path / f"{letter_n}.png")
                     letter_n += 1
         if letter_ongoing and 20 < src_img.width - letter_start_x < max_width:
             letter = src_img.crop((letter_start_x, 0, src_img.width, src_img.height))
+            letter = letter.crop(letter.getbbox())
             letter.save(letter_dest_dir_path / f"{letter_n}.png")

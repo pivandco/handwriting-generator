@@ -7,7 +7,6 @@ from pathlib import Path
 from PIL import Image
 
 from .bbox import BoundingBox
-from .fontmaker.cropper import crop_image
 
 Coordinates = tuple[int, int]
 FontDict = dict[str, list[Image.Image]]
@@ -127,11 +126,10 @@ class LetterVariation:
                 "inter-letter connections between non-alphabetic characters does not make sense"
             )
 
-        part_above_baseline = crop_image(
-            self.image.crop(
-                (0, 0, self.image.width, int(self.bbox.baseline_y * self.image.height))
-            )
+        part_above_baseline = self.image.crop(
+            (0, 0, self.image.width, int(self.bbox.baseline_y * self.image.height))
         )
+        part_above_baseline = part_above_baseline.crop(part_above_baseline.getbbox())
         far_left_vertical_slice = (
             part_above_baseline.crop((0, 0, 1, part_above_baseline.height))
             .getchannel("L")

@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-from typing import cast
 
 from PIL import Image, ImageDraw
 
