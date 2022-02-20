@@ -7,6 +7,7 @@ from pathlib import Path
 from PIL import Image
 
 from .bbox import BoundingBox
+from .config import CONFIG
 
 Coordinates = tuple[int, int]
 FontDict = dict[str, list[Image.Image]]
@@ -18,7 +19,7 @@ class Font:
     @staticmethod
     def load(text: str) -> "Font":
         """
-        Loads the letter images from ``letters/ready``. Only those letters
+        Loads the letter images from ``font/ready``. Only those letters
         which are required for drawing ``text`` are loaded.
         """
         letters_images: FontDict = {}
@@ -26,7 +27,9 @@ class Font:
         for letter in letters:
             letters_images[letter] = []
             filename = Font._char_to_filename(letter)
-            for img in Path(f"font/ready/{filename}").glob("*.png"):
+            for img in Path(f"{CONFIG['paths']['font']}/ready/{filename}").glob(
+                "*.png"
+            ):
                 letters_images[letter].append(Image.open(img))
             if not letters_images:
                 print(f'Error: no images for letter "{letter}"')
@@ -52,7 +55,9 @@ class Font:
 
     def __init__(self, font_dict: FontDict):
         self.dict = font_dict
-        with open("font/bounding-boxes.json", encoding="utf8") as bboxes_file:
+        with open(
+            f"{CONFIG['paths']['font']}/bounding-boxes.json", encoding="utf8"
+        ) as bboxes_file:
             self._bounding_boxes = json.load(bboxes_file)
 
     def letter_variation(self, char: str) -> "LetterVariation":
@@ -94,7 +99,7 @@ class LetterVariation:
         """
         if not self.char.isalpha():
             raise InvalidLetterInterconnectionError(
-                "inter-letter connections between non-alphabetic characters does not make sense"
+                "letter interconnections between non-alphabetic characters does not make sense"
             )
 
         # TODO: start at baseline

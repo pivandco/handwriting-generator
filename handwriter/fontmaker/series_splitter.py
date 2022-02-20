@@ -3,10 +3,11 @@ from pathlib import Path
 from PIL import Image
 from tqdm import tqdm
 
+from ..config import CONFIG
 from ._utils import prepare_destination_directory
 
-SOURCE_DIR = "font/transparent/"
-DEST_DIR = "font/ready/"
+SOURCE_DIR = f"{CONFIG['paths']['font']}/transparent/"
+DEST_DIR = f"{CONFIG['paths']['font']}/ready/"
 
 
 def split_series():

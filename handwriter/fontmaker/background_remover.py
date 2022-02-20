@@ -4,10 +4,11 @@ import numpy as np
 from PIL import Image
 from tqdm import tqdm
 
+from ..config import CONFIG
 from ._utils import prepare_destination_directory
 
-SOURCE_DIR = "font/src/"
-DEST_DIR = "font/transparent/"
+SOURCE_DIR = f"{CONFIG['paths']['font']}/src/"
+DEST_DIR = f"{CONFIG['paths']['font']}/transparent/"
 
 
 def remove_background():
